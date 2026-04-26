@@ -63,6 +63,10 @@ def loco(model, patches, X_train, X_test, y_train, y_test,
     except ImportError:
         is_skorch = False
 
+    if is_skorch:
+        X_train = X_train.astype('float32')
+        X_test = X_test.astype('float32')
+
     if full_score is None:
         full_score = metric(y_test, model.predict(X_test))
 
