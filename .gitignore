@@ -36,4 +36,5 @@ htmlcov/
 # IDE-specific (Optional)
 .vscode/
 .idea/
+*/.DS_Store
 .DS_Store
