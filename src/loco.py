@@ -69,11 +69,15 @@ def loco(model, patches, X_train, X_test, y_train, y_test,
     # threads avoid torch/CUDA multiprocessing issues; processes are fine for sklearn
     prefer = "threads" if is_skorch else "processes"
 
-    results = Parallel(n_jobs=n_jobs, prefer=prefer)(
-        delayed(_loco_one_patch)(
-            patch, model, X_train, X_test, y_train, y_test,
-            full_score, metric, higher_is_better, early_stopping_patience, is_skorch
-        )
-        for patch in tqdm(patches, desc="LOCO")
-    )
+    results = list(tqdm(
+        Parallel(n_jobs=n_jobs, prefer=prefer, return_as="generator")(
+            delayed(_loco_one_patch)(
+                patch, model, X_train, X_test, y_train, y_test,
+                full_score, metric, higher_is_better, early_stopping_patience, is_skorch
+            )
+            for patch in patches
+        ),
+        total=len(patches),
+        desc="LOCO",
+    ))
     return np.array(results)
