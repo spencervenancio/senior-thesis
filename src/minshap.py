@@ -5,11 +5,13 @@ from typing import Callable
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 
+from .loss import local_expecation
+
 
 def _minshap_one_permutation(model, X_train, y_train, patches, metric,
                               higher_is_better, V_null, e2_null,
                               early_stopping_patience, is_skorch,
-                              show_patch_bar=False):
+                              show_patch_bar=False, local=False, x_S = None, tolerance=0.1):
     n = X_train.shape[0]
     p = len(patches)
     model = copy.deepcopy(model)
@@ -35,7 +37,11 @@ def _minshap_one_permutation(model, X_train, y_train, patches, metric,
 
         fn_new = model.fit(X_new, y_train)
         preds_new = fn_new.predict(X_new)
-        V_new = metric(y_train, preds_new)
+        if local:
+            active_cols = np.concatenate([patches[idx] for idx in active_patches])
+            V_new = local_expecation(X=X_train, x_S=x_S, Y_hat=preds_new, Y=y_train, active_cols=active_cols, tolerance=tolerance)
+        else:
+            V_new = metric(y_train, preds_new)
         e2_new = (y_train - preds_new) ** 2
 
         phi_k[patch_j] = V_new - V_curr if higher_is_better else V_curr - V_new
@@ -50,7 +56,7 @@ def _minshap_one_permutation(model, X_train, y_train, patches, metric,
 def minshap(model, patches, X_train: np.ndarray, y_train: np.ndarray,
             metric: Callable, K: int = 100, alpha: float = 0.05,
             higher_is_better: bool = True, early_stopping_patience: int = 5,
-            n_jobs: int = -1):
+            n_jobs: int = -1, local=False, x_S = None, tolerance=0.1):
     """
     MinShap feature selection via minimum-SHAP marginal contributions.
 
@@ -99,7 +105,7 @@ def minshap(model, patches, X_train: np.ndarray, y_train: np.ndarray,
             results.append(_minshap_one_permutation(
                 model, X_train, y_train, patches, metric, higher_is_better,
                 V_null, e2_null, early_stopping_patience, is_skorch,
-                show_patch_bar=True
+                show_patch_bar=True, local=local, x_S=x_S, tolerance=tolerance
             ))
     else:
         results = list(tqdm(
@@ -107,7 +113,7 @@ def minshap(model, patches, X_train: np.ndarray, y_train: np.ndarray,
                 delayed(_minshap_one_permutation)(
                     model, X_train, y_train, patches, metric, higher_is_better,
                     V_null, e2_null, early_stopping_patience, is_skorch,
-                    show_patch_bar=False
+                    show_patch_bar=False, local=local, x_S=x_S, tolerance=tolerance
                 )
                 for _ in range(K)
             ),
