@@ -20,6 +20,8 @@ class AdaptiveNeuralNetClassifier(NeuralNetClassifier):
     """Rebuilds the module to match the input dimension on each fit()."""
 
     def fit(self, X, y, **kwargs):
+        if hasattr(X, 'numpy'):
+            X, y = X.numpy(), y.numpy()
         X = X.astype(np.float32)
         y = y.astype(np.int64)
         n_input, n_classes = X.shape[1], len(np.unique(y))

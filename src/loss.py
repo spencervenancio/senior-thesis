@@ -1,11 +1,13 @@
 import numpy as np
+from sklearn.neighbors import NearestNeighbors
 
-def local_expecation(X, x_S, Y_hat, Y, active_cols, tolerance=0.005):
-    """Calculates the E((Y-f_s(X))^2 | X_S = x_s) using a KNN approach
-    """
-    abs_diff = np.abs(X[:, active_cols] - x_S[active_cols])
-    local_indices = np.where(np.all(abs_diff < tolerance, axis=1))[0]
-    is_self = np.all(abs_diff[local_indices] == 0, axis=1)
-    local_indices = local_indices[~is_self]
-    local_predictions = Y_hat[local_indices]
-    return np.mean((Y[local_indices] - local_predictions) ** 2)
+
+def local_neighborhood(X, x_S, k=50):
+    """Find indices of k nearest neighbors of x_S in X (all features)."""
+    nn = NearestNeighbors(n_neighbors=min(k, len(X))).fit(X)
+    return nn.kneighbors(x_S.reshape(1, -1), return_distance=False)[0]
+
+
+def local_mse(Y_hat, Y, indices):
+    """MSE of Y_hat vs Y restricted to a precomputed neighborhood."""
+    return np.mean((Y[indices] - Y_hat[indices]) ** 2)
