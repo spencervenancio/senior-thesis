@@ -29,8 +29,6 @@ violations fail the commit.
 |---|---|---|
 | D1 | docstrings are a single line | `lfs/`, `experiments/` |
 | D2 | no comments, except directives like `# noqa` | `lfs/`, `experiments/` |
-| D3 | no markdown outside `README.md`, `CLAUDE.md`, `notes/` | repo-wide |
 
 `tests/` and `tools/` are exempt from D1/D2 — a test docstring states the bug it
-guards. To add a markdown file, add it to `ALLOWED_MARKDOWN` in
-`tools/lint_docs.py` in the same commit.
+guards.

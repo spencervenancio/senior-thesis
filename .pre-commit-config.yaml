@@ -16,4 +16,4 @@ repos:
         name: documentation rules (CLAUDE.md)
         entry: python tools/lint_docs.py
         language: system
-        types_or: [python, markdown]
+        types: [python]

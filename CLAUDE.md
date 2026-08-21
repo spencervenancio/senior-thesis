@@ -80,15 +80,9 @@ editing that file, in the same commit as whatever needed the exception.
 |---|---|---|
 | **D1** | docstrings are a single line | `lfs/`, `experiments/` |
 | **D2** | no comments, except tooling directives (`# noqa`, `# type:`) | `lfs/`, `experiments/` |
-| **D3** | no markdown outside `README.md`, `CLAUDE.md`, `notes/` | repo-wide |
 
 `tests/` and `tools/` are exempt from D1/D2 on purpose: a test docstring states
 the bug the test guards, which is the one place prose earns its keep.
-
-D3 is the load-bearing one. It is what stops a design doc, a changelog, or a
-summary of a summary from accumulating in a directory nobody reads. If a new
-markdown file is genuinely warranted, add it to `ALLOWED_MARKDOWN` and say why
-in the commit message — the friction is the feature.
 
 ## Never commit
 

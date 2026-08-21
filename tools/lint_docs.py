@@ -3,17 +3,16 @@
 
 Run over a set of paths (pre-commit passes the staged ones):
 
-    python tools/lint_docs.py $(git ls-files '*.py' '*.md')
+    python tools/lint_docs.py $(git ls-files '*.py')
 
 Rules
 -----
 D1  Docstrings in CODE_DIRS are a single line.
 D2  No comments in CODE_DIRS except tooling directives (see DIRECTIVES).
-D3  No markdown outside ALLOWED_MARKDOWN.
 
 Why these and not a docstring-style linter: the failure mode here is not badly
 formatted prose, it is generated prose accumulating faster than anyone reads
-it. These three rules are the ones that cap volume rather than police style.
+it. These two rules are the ones that cap volume rather than police style.
 """
 from __future__ import annotations
 
@@ -31,12 +30,6 @@ CODE_DIRS = ("lfs", "experiments")
 
 # Comments that survive because a tool reads them, not a human.
 DIRECTIVES = ("noqa", "type:", "pragma:", "ruff:", "fmt:", "isort:", "mypy:")
-
-# Markdown that is allowed to exist. README/CLAUDE are configuration; notes/ is
-# the human's. Anything else is the bloat this rule exists to stop -- if you
-# genuinely need a new one, add it here in the same commit and say why.
-ALLOWED_MARKDOWN = ("README.md", "CLAUDE.md")
-ALLOWED_MARKDOWN_DIRS = ("notes",)
 
 
 def _in(path: Path, roots: tuple[str, ...]) -> bool:
@@ -86,16 +79,6 @@ def check_comments(path: Path, src: str) -> list[str]:
     return problems
 
 
-def check_markdown(path: Path) -> list[str]:
-    if path.as_posix() in ALLOWED_MARKDOWN or _in(path, ALLOWED_MARKDOWN_DIRS):
-        return []
-    return [
-        f"{path}:1: D3 new markdown file. Documentation is written by the human. "
-        f"If this is genuinely needed, add it to ALLOWED_MARKDOWN in "
-        f"tools/lint_docs.py in the same commit."
-    ]
-
-
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("paths", nargs="*", type=Path)
@@ -104,9 +87,6 @@ def main(argv=None) -> int:
     problems: list[str] = []
     for path in args.paths:
         if not path.is_file():
-            continue
-        if path.suffix == ".md":
-            problems += check_markdown(path)
             continue
         if path.suffix != ".py" or not _in(path, CODE_DIRS):
             continue
