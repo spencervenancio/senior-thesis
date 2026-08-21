@@ -44,7 +44,7 @@ Pass `loss=` explicitly.
 
 ```bash
 pip install -e ".[torch,dev]"     # torch extra covers skorch/captum/torchvision
-pytest                            # 103 tests, ~4s
+pytest                            # 102 tests, ~4s
 ```
 
 The `torch` extra is optional: the core selection code, the simulated designs,

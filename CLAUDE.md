@@ -12,7 +12,7 @@ proposing direction, not just code.
 
 ```bash
 pip install -e ".[torch,dev]"          # torch extra = skorch/captum/torchvision
-pytest                                  # 103 tests, ~4s
+pytest                                  # 102 tests, ~4s
 pytest -m "not slow"                    # skip end-to-end recovery runs
 ruff check lfs experiments tests
 python -m experiments.run experiments/configs/<name>.yaml
