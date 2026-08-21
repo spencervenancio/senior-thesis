@@ -246,3 +246,31 @@ def test_local_mode_runs_and_restricts_evaluation(linear_design):
     assert r["n_eval"] == 60
     assert len(r["eval_idx"]) == 60
     assert r["phi_min"].shape == (10,)
+
+
+def test_select_top_k_breaks_ties_fairly():
+    """argsort ties by index, which fabricates recall on zero attributions.
+
+    Six features tied at zero, two slots to fill: each tied feature should be
+    picked about 2/6 of the time, not deterministically by position.
+    """
+    from lfs.selection.saliency import select_top_k
+
+    attr = np.array([5.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 2.0])
+    rng = np.random.default_rng(0)
+    counts = np.zeros(10)
+    for _ in range(4000):
+        counts += select_top_k(attr, 6, rng=rng)
+    assert (counts[[0, 1, 8, 9]] == 4000).all(), "the four clear winners always win"
+    tied = counts[2:8] / 4000
+    assert abs(tied.mean() - 2 / 6) < 0.02
+    assert tied.max() - tied.min() < 0.05, "no tied feature is systematically favoured"
+
+
+def test_select_top_k_is_reproducible_with_a_seed():
+    from lfs.selection.saliency import select_top_k
+
+    attr = np.zeros(10)
+    a = select_top_k(attr, 4, rng=np.random.default_rng(7))
+    b = select_top_k(attr, 4, rng=np.random.default_rng(7))
+    np.testing.assert_array_equal(a, b)

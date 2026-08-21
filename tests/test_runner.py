@@ -158,7 +158,7 @@ def test_shipped_configs_are_valid_yaml_with_required_keys():
     for path in configs:
         cfg = yaml.safe_load(path.read_text())
         assert {"name", "data", "model", "method"} <= set(cfg), f"{path.name} missing keys"
-        assert cfg["method"]["kind"] in {"minshap", "max_p", "loco"}, path.name
+        assert cfg["method"]["kind"] in {"minshap", "max_p", "loco", "saliency"}, path.name
         assert cfg["data"]["source"] in {"mnist", "simulated"}, path.name
         for c in expand_sweep(dict(cfg)):
-            assert c["method"]["kind"] in {"minshap", "max_p", "loco"}
+            assert c["method"]["kind"] in {"minshap", "max_p", "loco", "saliency"}

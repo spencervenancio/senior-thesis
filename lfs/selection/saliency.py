@@ -79,11 +79,20 @@ def attribute_batch(model, X, targets=None, method="saliency", **kwargs):
     return np.vstack(out)
 
 
-def select_top_k(attribution, k):
-    """Boolean mask of the k largest attributions -- the fixed-budget rule."""
+def select_top_k(attribution, k, rng=None):
+    """Boolean mask of the k largest attributions -- the fixed-budget rule.
+
+    Ties are broken uniformly at random. np.argsort breaks them by feature
+    index, which biases selection toward high-index features and manufactures
+    apparent recall whenever many attributions are exactly equal -- the true
+    gradient of an indicator gate is exactly zero, so a design with hard gates
+    hits this immediately. Pass ``rng`` for a reproducible tie-break.
+    """
     attribution = np.asarray(attribution)
+    rng = np.random.default_rng(rng)
+    order = np.lexsort((rng.random(len(attribution)), attribution))
     mask = np.zeros(len(attribution), dtype=bool)
-    mask[np.argsort(attribution)[-k:]] = True
+    mask[order[-k:]] = True
     return mask
 
 

@@ -56,7 +56,17 @@ def _build_model(spec):
     }
     if kind not in builders:
         raise KeyError(f"unknown model kind {kind!r}; available: {sorted(builders)}")
-    return builders[kind](**params)
+
+    # yaml cannot express a callback object, so translate the one knob we need:
+    # a fixed epoch budget is unfair across widths, since the arms converge at
+    # different rates.
+    patience = params.pop("early_stopping_patience", None)
+    est = builders[kind](**params)
+    if patience:
+        from skorch.callbacks import EarlyStopping
+
+        est.set_params(callbacks=[EarlyStopping(patience=int(patience))])
+    return est
 
 
 def _build_data(spec, rng):
@@ -75,13 +85,85 @@ def _build_data(spec, rng):
         design_name = spec["design"]
         n = spec.get("n", 2000)
         noise = spec.get("noise", 0.1)
-        design = simulated.make(design_name, n=n, noise=noise, rng=rng)
+        # anything else in the block is a design-specific knob, e.g. tau
+        extra = {k: v for k, v in spec.items()
+                 if k not in ("source", "design", "n", "noise", "test_frac")}
+        design = simulated.make(design_name, n=n, noise=noise, rng=rng, **extra)
         X, y = design.X, design.y
         split = int(len(X) * (1 - spec.get("test_frac", 0.3)))
         patches = single_features(X.shape[1])
         return X[:split], X[split:], y[:split], y[split:], patches, design
 
     raise KeyError(f"unknown data source {source!r}; expected 'mnist' or 'simulated'")
+
+
+def _query_points(design, X, n_query, rng):
+    """Indices of query points balanced across the distinct local supports.
+
+    conditional_interaction has four supports (one per gate quadrant) and they
+    are not equally frequent in a finite sample; scoring an unbalanced draw
+    would weight some supports more than others for no reason.
+    """
+    groups = {}
+    for i, x in enumerate(X):
+        groups.setdefault(tuple(design.local_support(x)), []).append(i)
+    per = max(1, n_query // len(groups))
+    picked = []
+    for idx in groups.values():
+        idx = np.asarray(idx)
+        picked.append(rng.choice(idx, size=min(per, len(idx)), replace=False))
+    return np.sort(np.concatenate(picked))
+
+
+def _run_saliency(model, design, X_train, y_train, X_test, y_test, params,
+                  local_spec, rng):
+    """Fit once, then attribute at every query point with every method."""
+    from lfs.selection import saliency as sal
+
+    methods = list(params.get("methods", ["saliency"]))
+    n_steps = int(params.get("n_steps", 50))
+
+    model.fit(X_train, y_train)
+    mse_train = float(np.mean((y_train - model.predict(X_train)) ** 2))
+    mse_test = float(np.mean((y_test - model.predict(X_test)) ** 2))
+
+    qi = _query_points(design, X_train, int(local_spec.get("n_query", 200)), rng)
+    Xq = X_train[qi]
+    truth = np.vstack([design.support_mask(x) for x in Xq])
+
+    attributions = np.stack([
+        sal.attribute_batch(model, Xq, method=m, n_steps=n_steps) for m in methods
+    ])
+
+    result = {
+        "attributions": attributions,
+        "query_index": qi,
+        "truth": truth,
+        "X_query": Xq,
+    }
+    if design.has_true_gradient:
+        result["true_gradient"] = np.vstack([np.abs(design.true_gradient(x))
+                                             for x in Xq])
+
+    # headline number only; the full rule sweep is recomputed offline from
+    # attributions, which is why they are stored raw
+    headline = {}
+    for mi, m in enumerate(methods):
+        f1 = [
+            recovery.recovery_scores(
+                sal.select_top_k(attributions[mi, j], int(truth[j].sum()), rng=rng),
+                truth[j], design.n_features,
+            )["f1"]
+            for j in range(len(qi))
+        ]
+        headline[f"f1_oracle_k_{m}"] = float(np.mean(f1))
+
+    metrics = {
+        "methods": methods, "n_query": len(qi),
+        "mse_train": mse_train, "mse_test": mse_test,
+        **headline,
+    }
+    return result, metrics
 
 
 def _git_info():
@@ -163,9 +245,10 @@ def run_one(cfg, out_root=RESULTS_DIR, dry_run=False):
     method_spec = cfg["method"]
     kind = method_spec["kind"]
     params = dict(method_spec.get("params", {}) or {})
+    saliency_metrics = None
 
     local_spec = cfg.get("local") or {}
-    if local_spec.get("enabled"):
+    if local_spec.get("enabled") and kind != "saliency":
         qi = int(local_spec.get("query_index", 0))
         params.update(local=True, x_S=X_train[qi], k=local_spec.get("k", 50))
 
@@ -187,8 +270,17 @@ def run_one(cfg, out_root=RESULTS_DIR, dry_run=False):
     elif kind == "max_p":
         result = max_p_fn(model, patches, X_train, y_train, rng=rng, **params)
         selected_mask = np.asarray(result["rejected"])
+    elif kind == "saliency":
+        if design is None:
+            raise ValueError("saliency scoring needs a simulated design with S*(x)")
+        result, saliency_metrics = _run_saliency(
+            model, design, X_train, y_train, X_test, y_test, params, local_spec, rng
+        )
+        selected_mask = None
     else:
-        raise KeyError(f"unknown method {kind!r}; expected minshap, max_p, or loco")
+        raise KeyError(
+            f"unknown method {kind!r}; expected minshap, max_p, loco, or saliency"
+        )
 
     elapsed = time.time() - t0
 
@@ -211,7 +303,13 @@ def run_one(cfg, out_root=RESULTS_DIR, dry_run=False):
     }
 
     metrics = {}
-    if design is not None and selected_mask is not None:
+    if saliency_metrics is not None:
+        metrics = saliency_metrics
+        print("    " + "  ".join(
+            f"{k.replace('f1_oracle_k_', 'F1/')}={v:.3f}"
+            for k, v in metrics.items() if k.startswith("f1_")
+        ) + f"  mse_test={metrics['mse_test']:.4f}")
+    elif design is not None and selected_mask is not None:
         truth = design.support
         if local_spec.get("enabled"):
             truth = design.local_support(X_train[int(local_spec.get("query_index", 0))])
@@ -229,7 +327,9 @@ def run_one(cfg, out_root=RESULTS_DIR, dry_run=False):
 
     # ---- figures ------------------------------------------------------------
     try:
-        _write_figures(cfg, result, patches, design, X_train, local_spec, out_dir, kind)
+        if kind != "saliency":
+            _write_figures(cfg, result, patches, design, X_train, local_spec,
+                           out_dir, kind)
     except Exception as exc:  # a plotting failure must not lose the run
         print(f"    [warn] figure generation failed: {exc}")
 

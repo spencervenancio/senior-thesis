@@ -97,3 +97,59 @@ def test_xor_is_marginally_uninformative():
 def test_unknown_design_raises():
     with pytest.raises(KeyError):
         simulated.make("not_a_design")
+
+
+# --- smooth gates and the analytic gradient ---------------------------------
+
+def test_smooth_design_is_registered():
+    d = simulated.make("smooth_conditional_interaction", n=200, tau=0.25, rng=0)
+    assert d.name == "smooth_conditional_interaction"
+    assert d.n_features == 10
+
+
+def test_smooth_local_support_tracks_the_gates():
+    d = simulated.make("smooth_conditional_interaction", n=500, tau=0.25, rng=0)
+    for x in d.X[:50]:
+        s = set(d.local_support(x).tolist())
+        assert {2, 7} <= s, "gates are always relevant"
+        assert ({0, 1} <= s) if x[2] > 0 else ({3, 4} <= s)
+        assert ({5, 6} <= s) if x[7] > 0 else ({8, 9} <= s)
+        assert len(s) == 6
+
+
+def test_smooth_true_gradient_matches_finite_differences():
+    """The C1 ceiling rests on this gradient being the real one."""
+    tau = 0.25
+    d = simulated.make("smooth_conditional_interaction", n=200, tau=tau, rng=0)
+
+    def f(x):
+        s3 = 1.0 / (1.0 + np.exp(-x[2] / tau))
+        s8 = 1.0 / (1.0 + np.exp(-x[7] / tau))
+        return (2 * x[0] * x[1] * s3 + x[3] * x[4] * (1 - s3)
+                + 9 * x[5] * x[6] * s8 + x[8] * x[9] * (1 - s8))
+
+    h = 1e-5
+    for x in d.X[:20]:
+        analytic = d.true_gradient(x)
+        for j in range(10):
+            xp, xm = x.copy(), x.copy()
+            xp[j] += h
+            xm[j] -= h
+            numeric = (f(xp) - f(xm)) / (2 * h)
+            assert abs(analytic[j] - numeric) < 1e-3 * max(1.0, abs(numeric))
+
+
+def test_hard_gates_have_zero_gradient():
+    """The finding that motivated the smooth design: indicators are flat."""
+    d = simulated.make("conditional_interaction", n=200, rng=0)
+    for x in d.X[:50]:
+        g = d.true_gradient(x)
+        assert g[2] == 0.0 and g[7] == 0.0
+        assert np.count_nonzero(g) == 4
+
+
+def test_designs_without_a_gradient_say_so():
+    d = simulated.make("linear_additive", n=100, rng=0)
+    assert not d.has_true_gradient
+    with pytest.raises(NotImplementedError):
+        d.true_gradient(d.X[0])

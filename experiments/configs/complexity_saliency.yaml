@@ -1,0 +1,43 @@
+# Local feature-selection quality from saliency, as a function of model width.
+#
+# g(c) = E_x[ F1( S-hat_x(f_c), S*_x ) ] with c = log10(#params).
+#
+# Design note: the hard-gate conditional_interaction cannot answer this. Its
+# gates are indicators, so d y / d x3 = 0 a.e. and two of the six features in
+# S*_x carry no gradient signal at any model complexity. tau smooths the gates
+# so the ceiling is attainable; tau = 0.25 measured best gate recall (0.655)
+# against an analytic-gradient ceiling of 0.786.
+name: complexity_saliency
+seed: 0
+
+data:
+  source: simulated
+  design: smooth_conditional_interaction
+  n: 20000
+  noise: 0.1
+  tau: 0.25
+  test_frac: 0.3
+
+model:
+  kind: neural_net_regressor
+  params:
+    module__hidden: 64
+    module__depth: 2
+    max_epochs: 300
+    lr: 0.003
+    batch_size: 256
+    early_stopping_patience: 20
+
+method:
+  kind: saliency
+  params:
+    methods: [saliency, input_x_gradient, integrated_gradients]
+    n_steps: 50
+
+local:
+  enabled: true
+  n_query: 200
+
+sweep:
+  model.params.module__hidden: [4, 8, 16, 32, 64, 128, 256]
+  seed: [0, 1, 2, 3, 4]
