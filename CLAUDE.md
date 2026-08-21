@@ -26,6 +26,8 @@ small surface area someone can hold in their head, not for preservation.
   signature and the code carry the rest. A decision that genuinely needs an
   explanation is a convention — record it in the section below, where it is
   read once, instead of in a comment that is read never.
+- **These rules are enforced, not suggested.** `tools/lint_docs.py` runs in
+  pre-commit and fails the commit. See "Documentation rules" below.
 - Errors are the place to be wordy. A loud `TypeError` that explains a removed
   interface is worth ten paragraphs of docstring.
 
@@ -36,6 +38,8 @@ pip install -e ".[torch,dev]"          # torch extra = skorch/captum/torchvision
 pytest                                  # 102 tests, ~4s
 pytest -m "not slow"                    # skip end-to-end recovery runs
 ruff check lfs experiments tests
+pre-commit install                      # once, per clone
+pre-commit run --all-files              # ruff + the documentation rules
 python -m experiments.run experiments/configs/<name>.yaml
 python -m experiments.run <config> --dry-run   # print resolved configs, run nothing
 ```
@@ -66,6 +70,25 @@ Deliberate. Changing them silently corrupts results.
 - **`experiments/run.py` imports selection callables directly**
   (`from lfs.selection.minshap import minshap`). Going through the package
   binds the re-exported *function* where the *module* was meant.
+
+## Documentation rules
+
+Enforced by `tools/lint_docs.py` via pre-commit. Editing the rules means
+editing that file, in the same commit as whatever needed the exception.
+
+| | rule | scope |
+|---|---|---|
+| **D1** | docstrings are a single line | `lfs/`, `experiments/` |
+| **D2** | no comments, except tooling directives (`# noqa`, `# type:`) | `lfs/`, `experiments/` |
+| **D3** | no markdown outside `README.md`, `CLAUDE.md`, `notes/` | repo-wide |
+
+`tests/` and `tools/` are exempt from D1/D2 on purpose: a test docstring states
+the bug the test guards, which is the one place prose earns its keep.
+
+D3 is the load-bearing one. It is what stops a design doc, a changelog, or a
+summary of a summary from accumulating in a directory nobody reads. If a new
+markdown file is genuinely warranted, add it to `ALLOWED_MARKDOWN` and say why
+in the commit message — the friction is the feature.
 
 ## Never commit
 
