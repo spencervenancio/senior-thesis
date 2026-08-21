@@ -18,6 +18,5 @@ Cited or discussed in the notes but not yet in `lit/`:
 
 ## Note
 
-`Youth Protection & Engagement Participant Interacting with Minors Code of
-Conduct.pdf` is in this directory but is not research literature — it looks
-misfiled. It is untracked in git; move or delete it as you see fit.
+Only research literature belongs here. A misfiled personal document was removed
+from this directory during the restructure.
