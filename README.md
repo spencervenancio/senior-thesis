@@ -20,9 +20,10 @@ python -m experiments.run experiments/configs/<name>.yaml
 
 ## Documentation rules
 
-This is early-stage research code: all of it is replaceable, `notes/` is the
-hand-written source of truth, and generated prose is the first thing cut.
-Enforced by `tools/lint_docs.py` in pre-commit — violations fail the commit.
+This is early-stage research code which obides by the mentality that
+all code is replaceable, `notes/` is the hand-written source of truth.
+We enforce documentation rules by `tools/lint_docs.py` in pre-commit — 
+violations fail the commit.
 
 | | rule | scope |
 |---|---|---|
