@@ -56,7 +56,8 @@ def select_top_k(attribution, k):
     """Boolean mask of the k largest attributions -- the fixed-budget rule."""
     attribution = np.asarray(attribution)
     mask = np.zeros(len(attribution), dtype=bool)
-    mask[np.argsort(attribution)[-k:]] = True
+    if k > 0:
+        mask[np.argsort(attribution)[-k:]] = True
     return mask
 
 
@@ -66,64 +67,6 @@ def select_threshold(attribution, frac=0.05):
     if attribution.max() <= 0:
         return np.zeros(len(attribution), dtype=bool)
     return attribution >= frac * attribution.max()
-
-
-def path_gradients(model, x, target=None, baseline=None, n_steps=50):
-    """Per-feature gradients at each point along the straight-line IG path."""
-    import torch
-
-    net = _unwrap(model)
-    net.eval()
-
-    if not isinstance(x, torch.Tensor):
-        x = torch.tensor(np.asarray(x), dtype=torch.float32)
-    x = x.reshape(1, -1).float()
-
-    if baseline is None:
-        baseline = torch.zeros_like(x)
-    elif not isinstance(baseline, torch.Tensor):
-        baseline = torch.tensor(np.asarray(baseline), dtype=torch.float32).reshape(1, -1)
-
-    if target is None:
-        with torch.no_grad():
-            out = net(x)
-        target = int(out.argmax(dim=1)) if out.ndim > 1 and out.shape[1] > 1 else 0
-
-    grads = []
-    for k in range(1, n_steps + 1):
-        point = (baseline + (k / n_steps) * (x - baseline)).clone().requires_grad_(True)
-        out = net(point)
-        score = out[:, target] if out.ndim > 1 and out.shape[1] > 1 else out.squeeze()
-        (grad,) = torch.autograd.grad(score.sum(), point)
-        grads.append(grad.squeeze().detach().cpu().numpy())
-
-    return np.vstack(grads), (x - baseline).squeeze().detach().cpu().numpy()
-
-
-def reduce_path(grads, delta, reduction="mean"):
-    """Collapse path gradients into one attribution per feature."""
-    if reduction == "mean":
-        reduced = grads.mean(axis=0)
-    elif reduction == "min":
-        reduced = grads.min(axis=0)
-    elif reduction == "min_abs":
-        reduced = np.abs(grads).min(axis=0)
-    elif reduction == "max_abs":
-        reduced = np.abs(grads).max(axis=0)
-    else:
-        raise ValueError(
-            f"reduction must be mean, min, min_abs, or max_abs; got {reduction!r}"
-        )
-    return reduced * delta
-
-
-def min_integrated_gradients(model, x, target=None, baseline=None, n_steps=50,
-                             reduction="min_abs", abs_value=True):
-    """Integrated gradients with the path integral replaced by a minimum."""
-    grads, delta = path_gradients(model, x, target=target, baseline=baseline,
-                                  n_steps=n_steps)
-    attr = reduce_path(grads, delta, reduction=reduction)
-    return np.abs(attr) if abs_value else attr
 
 
 def dropout_curve(attribution, steps=20):
@@ -139,6 +82,5 @@ def dropout_curve(attribution, steps=20):
 
 __all__ = [
     "attribute", "attribute_batch", "select_top_k", "select_threshold",
-    "dropout_curve", "path_gradients", "reduce_path", "min_integrated_gradients",
-    "METHODS",
+    "dropout_curve", "METHODS",
 ]
