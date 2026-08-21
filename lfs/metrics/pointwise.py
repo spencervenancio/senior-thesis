@@ -1,21 +1,4 @@
-"""Per-sample losses.
-
-Why this module exists
-----------------------
-MinShap's rejection threshold is built from ``sigma_j``, the variance of the
-*per-sample* change in loss when patch j is added. That is only coherent if the
-value function ``V`` and the variance ``sigma`` come from the same loss.
-
-The original implementation computed ``V`` with an arbitrary sklearn metric
-(e.g. ``accuracy_score``) but always computed ``sigma`` from
-``(y_true - y_pred) ** 2``. For a classifier whose ``predict`` returns integer
-class labels, that squared term treats a 7-predicted-as-1 error as 36x worse
-than 7-predicted-as-6, which is not a meaningful loss on a nominal label -- and
-it is not the accuracy whose change ``V`` was tracking either.
-
-Defining the loss pointwise fixes both: ``V = mean(loss)`` and
-``sigma = var(loss_curr - loss_new) / n`` are guaranteed consistent.
-"""
+"""Per-sample losses."""
 import numpy as np
 
 
@@ -30,11 +13,7 @@ def zero_one(y_true, y_pred, proba=None):
 
 
 def cross_entropy(y_true, y_pred, proba=None, eps=1e-12):
-    """Per-sample negative log-likelihood of the true class.
-
-    Requires class probabilities. Lower variance than 0/1 loss, so it usually
-    gives a tighter threshold, but needs a model exposing ``predict_proba``.
-    """
+    """Per-sample negative log-likelihood of the true class."""
     if proba is None:
         raise ValueError("cross_entropy requires predicted probabilities")
     proba = np.asarray(proba, dtype=float)
@@ -43,7 +22,6 @@ def cross_entropy(y_true, y_pred, proba=None, eps=1e-12):
     return -np.log(np.clip(p_true, eps, 1.0))
 
 
-#: Names usable from an experiment config.
 REGISTRY = {
     "squared_error": squared_error,
     "zero_one": zero_one,
@@ -54,12 +32,7 @@ NEEDS_PROBA = {"cross_entropy"}
 
 
 def resolve(loss, y=None):
-    """Turn a name, callable, or None into a (loss_fn, needs_proba) pair.
-
-    Passing None infers from ``y``: integer-valued targets with few distinct
-    values are treated as classification (0/1 loss), otherwise regression
-    (squared error).
-    """
+    """Turn a name, callable, or None into a (loss_fn, needs_proba) pair."""
     if callable(loss):
         return loss, False
     if isinstance(loss, str):

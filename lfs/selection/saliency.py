@@ -1,12 +1,4 @@
-"""Gradient-based attribution, wrapped for comparison against MinShap/LOCO.
-
-These are the cheap local baselines: one backward pass gives a per-feature
-score at a single point, with no refitting and no statistical guarantee. The
-research question they exist to sharpen is how much is lost by that trade.
-
-All functions return plain numpy arrays so downstream scoring
-(:mod:`lfs.metrics.recovery`) is identical across methods.
-"""
+"""Gradient-based attribution, wrapped for comparison against MinShap/LOCO."""
 import numpy as np
 
 METHODS = ("saliency", "input_x_gradient", "integrated_gradients")
@@ -18,26 +10,7 @@ def _unwrap(model):
 
 
 def attribute(model, x, target=None, method="saliency", n_steps=50, abs_value=True):
-    """Attribution for a single input.
-
-    Parameters
-    ----------
-    model : torch.nn.Module or skorch NeuralNet
-        skorch wrappers are unwrapped automatically.
-    x : torch.Tensor or np.ndarray, shape (n_features,) or (1, n_features)
-    target : int, optional
-        Output index to attribute. Defaults to the model's predicted class.
-    method : {'saliency', 'input_x_gradient', 'integrated_gradients'}
-    n_steps : int
-        Riemann steps, integrated gradients only.
-    abs_value : bool
-        Return |attribution|. Magnitude is what feature *selection* needs;
-        set False to keep signed direction for visualization.
-
-    Returns
-    -------
-    np.ndarray, shape (n_features,)
-    """
+    """Attribution for a single input."""
     import torch
     from captum.attr import InputXGradient, IntegratedGradients, Saliency
 
@@ -88,11 +61,7 @@ def select_top_k(attribution, k):
 
 
 def select_threshold(attribution, frac=0.05):
-    """Boolean mask of attributions above ``frac`` of the maximum.
-
-    Note this has no error control: the cutoff is a heuristic on an arbitrary
-    scale, which is exactly the gap MinShap's calibrated threshold fills.
-    """
+    """Boolean mask of attributions above ``frac`` of the maximum."""
     attribution = np.asarray(attribution)
     if attribution.max() <= 0:
         return np.zeros(len(attribution), dtype=bool)
@@ -100,18 +69,7 @@ def select_threshold(attribution, frac=0.05):
 
 
 def path_gradients(model, x, target=None, baseline=None, n_steps=50):
-    """Per-feature gradients at each point along the straight-line IG path.
-
-    Returns
-    -------
-    grads : np.ndarray, shape (n_steps, n_features)
-        Row k is grad f_c evaluated at ``baseline + (k/m)(x - baseline)``.
-    delta : np.ndarray, shape (n_features,)
-        ``x - baseline``, the factor IG multiplies its path average by.
-
-    Integrated gradients averages ``grads`` over the path. Exposing the raw
-    path lets other reductions be tried -- see :func:`reduce_path`.
-    """
+    """Per-feature gradients at each point along the straight-line IG path."""
     import torch
 
     net = _unwrap(model)
@@ -143,30 +101,7 @@ def path_gradients(model, x, target=None, baseline=None, n_steps=50):
 
 
 def reduce_path(grads, delta, reduction="mean"):
-    """Collapse path gradients into one attribution per feature.
-
-    Parameters
-    ----------
-    reduction : {'mean', 'min', 'min_abs', 'max_abs'}
-        ``'mean'`` reproduces standard integrated gradients (the Riemann sum
-        approximating the path integral).
-
-        ``'min_abs'`` is the selection-oriented variant: it reports the
-        *smallest* gradient magnitude seen anywhere along the path, so a
-        feature scores highly only if it matters at every point between the
-        baseline and the input. This is the path analogue of MinShap's minimum
-        over permutations -- in both cases the minimum is what converts a
-        contribution measure into evidence that survives an adversarial choice
-        of context.
-
-    Notes
-    -----
-    Open question from the 05-08-2026 meeting notes. The reason to expect this
-    to behave differently from mean-IG: a feature whose gradient is large near
-    the input but ~0 near the baseline gets a healthy IG score, yet contributes
-    nothing over most of the path. Mean-IG cannot distinguish that from a
-    feature that matters uniformly; the minimum can.
-    """
+    """Collapse path gradients into one attribution per feature."""
     if reduction == "mean":
         reduced = grads.mean(axis=0)
     elif reduction == "min":
@@ -184,12 +119,7 @@ def reduce_path(grads, delta, reduction="mean"):
 
 def min_integrated_gradients(model, x, target=None, baseline=None, n_steps=50,
                              reduction="min_abs", abs_value=True):
-    """Integrated gradients with the path integral replaced by a minimum.
-
-    Convenience wrapper over :func:`path_gradients` + :func:`reduce_path`.
-    Set ``reduction='mean'`` to recover standard IG for a like-for-like
-    comparison on the same path samples.
-    """
+    """Integrated gradients with the path integral replaced by a minimum."""
     grads, delta = path_gradients(model, x, target=target, baseline=baseline,
                                   n_steps=n_steps)
     attr = reduce_path(grads, delta, reduction=reduction)
@@ -197,12 +127,7 @@ def min_integrated_gradients(model, x, target=None, baseline=None, n_steps=50,
 
 
 def dropout_curve(attribution, steps=20):
-    """Support size as the selection threshold sweeps from 0 to max.
-
-    Returns ``(thresholds, n_selected)``. A design whose truly-relevant features
-    dominate shows a long plateau at the true support size; a diffuse
-    attribution decays smoothly with no stable reading.
-    """
+    """Support size as the selection threshold sweeps from 0 to max."""
     attribution = np.asarray(attribution)
     hi = attribution.max()
     if hi <= 0:

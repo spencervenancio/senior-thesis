@@ -1,5 +1,4 @@
-# Support recovery across the synthetic designs, scored automatically against
-# the known S*. Sweeps design x seed so FDR/power can be averaged over replicates.
+# Support recovery across the synthetic designs, scored against known S*.
 name: simulated_recovery
 seed: 0
 

@@ -1,16 +1,4 @@
-"""Config-driven experiment runner.
-
-    python -m experiments.run experiments/configs/mnist_local_minshap.yaml
-
-Every run writes a self-contained directory under ``results/`` holding the
-resolved config, a metadata stamp (git SHA, seed, timings, library versions),
-the raw arrays, and any figures. The point is that a plot found six months from
-now can always be traced back to the exact code and parameters that produced
-it -- which is not true of a PNG saved from a notebook.
-
-Configs may declare a ``sweep`` block mapping dotted config paths to lists; the
-runner expands the cartesian product and executes one run per combination.
-"""
+"""Config-driven experiment runner."""
 import argparse
 import itertools
 import json
@@ -26,16 +14,13 @@ import matplotlib
 import numpy as np
 import yaml
 
-matplotlib.use("Agg")  # headless: never try to open a window from a script
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 from lfs import seed as seed_mod  # noqa: E402
 from lfs.data import get_patches, load_mnist, simulated, single_features  # noqa: E402
 from lfs.metrics import recovery  # noqa: E402
 from lfs.paths import RESULTS_DIR, ROOT  # noqa: E402
-
-# import the callables directly: `from lfs.selection import minshap` would bind
-# the re-exported *function*, not the module
 from lfs.selection.loco import loco as loco_fn  # noqa: E402
 from lfs.selection.maxp import max_p as max_p_fn  # noqa: E402
 from lfs.selection.minshap import minshap as minshap_fn  # noqa: E402
@@ -172,8 +157,6 @@ def run_one(cfg, out_root=RESULTS_DIR, dry_run=False):
     print(f"==> {dirname}: {kind} on {cfg['data']['source']}, "
           f"{len(patches)} patches, seed={seed}")
 
-    # The estimator must be fitted before LOCO (it needs a baseline); the
-    # permutation methods refit from scratch and take it unfitted.
     if kind == "loco":
         model.fit(X_train, y_train)
         importances = loco_fn(
@@ -192,7 +175,6 @@ def run_one(cfg, out_root=RESULTS_DIR, dry_run=False):
 
     elapsed = time.time() - t0
 
-    # ---- persist ------------------------------------------------------------
     arrays = {k: np.asarray(v) for k, v in result.items()
               if isinstance(v, (np.ndarray, list)) and v is not None}
     np.savez_compressed(out_dir / "arrays.npz", **arrays)
@@ -227,10 +209,9 @@ def run_one(cfg, out_root=RESULTS_DIR, dry_run=False):
         (out_dir / "metrics.json").write_text(json.dumps(metrics, indent=2))
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
 
-    # ---- figures ------------------------------------------------------------
     try:
         _write_figures(cfg, result, patches, design, X_train, local_spec, out_dir, kind)
-    except Exception as exc:  # a plotting failure must not lose the run
+    except Exception as exc:
         print(f"    [warn] figure generation failed: {exc}")
 
     print(f"    wrote {out_dir}  ({elapsed:.1f}s)")

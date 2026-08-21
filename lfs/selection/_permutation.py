@@ -1,16 +1,4 @@
-"""Shared machinery for permutation-based Shapley feature selection.
-
-MinShap and Max-p differ only in how they turn the per-permutation statistics
-``(phi, sigma)`` into a rejection decision, so the expensive part -- refitting
-the model along a random patch ordering -- lives here and is run once.
-
-Convention
-----------
-``phi[j]`` is the **reduction in loss** obtained by adding patch j to the active
-set at its position in the permutation. Larger is more important, always,
-regardless of which loss is in play. This replaces the old ``higher_is_better``
-flag, which had to be interpreted differently in local and global mode.
-"""
+"""Shared machinery for permutation-based Shapley feature selection."""
 import copy
 
 import numpy as np
@@ -59,21 +47,7 @@ def _mask_to(X, patches, active):
 def permutation_pass(model, patches, X, y, loss_fn, needs_proba, eval_idx,
                      null_losses, rng, is_skorch, early_stopping_patience,
                      show_patch_bar=False):
-    """One random-order pass, accumulating marginal contributions.
-
-    Parameters
-    ----------
-    eval_idx : np.ndarray or None
-        Restrict evaluation to these row indices (local mode). None uses all rows.
-    null_losses : np.ndarray
-        Per-sample losses of the all-zeros model, computed once by the caller.
-    rng : np.random.Generator
-        This permutation's own stream -- see :func:`lfs.seed.spawn`.
-
-    Returns
-    -------
-    phi, sigma : np.ndarray, each shape (len(patches),)
-    """
+    """One random-order pass, accumulating marginal contributions."""
     p = len(patches)
     est = _prepare_estimator(model, is_skorch, early_stopping_patience)
 
@@ -94,7 +68,6 @@ def permutation_pass(model, patches, X, y, loss_fn, needs_proba, eval_idx,
 
         delta = losses_curr[sel] - losses_new[sel]
         phi[patch_j] = float(np.mean(delta))
-        # Variance of the mean reduction; ddof=1 needs at least 2 eval points.
         sigma[patch_j] = float(np.var(delta, ddof=1) / n_eval) if n_eval > 1 else 0.0
 
         losses_curr = losses_new
@@ -105,13 +78,7 @@ def permutation_pass(model, patches, X, y, loss_fn, needs_proba, eval_idx,
 def run_permutations(model, patches, X, y, loss=None, K=100,
                      early_stopping_patience=5, n_jobs=-1,
                      local=False, x_S=None, k=50, rng=None, desc="permutations"):
-    """Run K independent permutation passes.
-
-    Returns
-    -------
-    dict with 'phi' and 'sigma', each shape (K, len(patches)), plus 'eval_idx'
-    and 'n_eval' describing the evaluation set.
-    """
+    """Run K independent permutation passes."""
     from ..seed import spawn
 
     X = np.asarray(X)
@@ -137,7 +104,6 @@ def run_permutations(model, patches, X, y, loss=None, K=100,
             "variance estimate -- increase k"
         )
 
-    # Null model: everything zeroed. Fit once and share across permutations.
     X_null = np.zeros_like(X)
     null_model = _prepare_estimator(model, is_skorch, early_stopping_patience)
     null_model.fit(X_null, y)
@@ -154,7 +120,6 @@ def run_permutations(model, patches, X, y, loss=None, K=100,
     if n_jobs == 1:
         results = [one(s, True) for s in tqdm(streams, desc=desc)]
     else:
-        # threads avoid torch multiprocessing issues; processes are fine for sklearn
         prefer = "threads" if is_skorch else "processes"
         results = list(tqdm(
             Parallel(n_jobs=n_jobs, prefer=prefer, return_as="generator")(

@@ -7,14 +7,7 @@ from ..selection.saliency import dropout_curve
 
 def plot_saliency(attribution, image=None, img_size=28, ax=None, cmap="hot",
                   alpha=0.5, title=None):
-    """Attribution heatmap, optionally overlaid on the source image.
-
-    Parameters
-    ----------
-    attribution : np.ndarray, shape (n_features,)
-    image : np.ndarray, optional
-        Source image to show underneath. Accepts torch tensors.
-    """
+    """Attribution heatmap, optionally overlaid on the source image."""
     attr = np.asarray(attribution.detach().cpu() if hasattr(attribution, "detach")
                       else attribution).reshape(img_size, img_size)
 
@@ -51,13 +44,7 @@ def plot_saliency_comparison(attributions, image=None, img_size=28, titles=None)
 
 def plot_dropout_thresholds(attribution, true_support=None, steps=20, ax=None,
                             title=None):
-    """Number of features retained as the attribution threshold sweeps upward.
-
-    A horizontal line marks the true support size when known: the useful
-    diagnostic is whether the curve *plateaus* there, meaning some threshold
-    recovers the right support, or passes straight through, meaning no cutoff
-    on this attribution does.
-    """
+    """Number of features retained as the attribution threshold sweeps upward."""
     thresholds, counts = dropout_curve(attribution, steps=steps)
 
     if ax is None:
