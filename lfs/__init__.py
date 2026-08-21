@@ -1,10 +1,4 @@
-"""Local feature selection with statistical guarantees.
-
-Top-level convenience imports::
-
-    from lfs import minshap, max_p, loco, set_seed
-    from lfs.data import simulated, get_patches, load_mnist
-"""
+"""Local feature selection with statistical guarantees."""
 from .paths import DATA_DIR, RESULTS_DIR, ROOT
 from .seed import set_seed, spawn
 from .selection.loco import loco

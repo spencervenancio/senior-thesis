@@ -1,9 +1,9 @@
 """Losses, local neighborhoods, and support-recovery scoring."""
 from . import pointwise
-from .local import Neighborhood, local_mse, local_neighborhood, local_score
+from .local import Neighborhood
 from .recovery import false_discovery_rate, power, recovery_scores
 
 __all__ = [
-    "pointwise", "Neighborhood", "local_neighborhood", "local_mse", "local_score",
+    "pointwise", "Neighborhood",
     "recovery_scores", "false_discovery_rate", "power",
 ]

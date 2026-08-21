@@ -1,24 +1,7 @@
-"""Synthetic designs with known ground-truth support.
-
-Each generator returns a :class:`SimulatedDataset` carrying the data *and* the
-true relevant feature set, so recovery can be scored automatically instead of
-comparing against an ``S_star`` dict maintained by hand in a notebook.
-
-Two notions of support are distinguished, and the difference is the whole point
-of local feature selection:
-
-``support``
-    The *global* support -- features that matter somewhere in the design.
-``local_support(x)``
-    The support *at a point*. For additive models this equals the global
-    support for every x. For :func:`conditional_interaction` it genuinely
-    varies with x, since the gating variables switch which interaction is live.
-
-Generators are seeded through an explicit ``rng`` so results are reproducible;
-see :mod:`lfs.seed`.
-"""
+"""Synthetic designs with known ground-truth support."""
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Callable, Optional, Sequence
+from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
@@ -51,10 +34,7 @@ class SimulatedDataset:
         return len(self.feature_names)
 
     def local_support(self, x: np.ndarray) -> np.ndarray:
-        """True relevant feature indices at the point ``x``.
-
-        Falls back to the global support for designs whose support is constant.
-        """
+        """True relevant feature indices at the point ``x``."""
         if self._local_support is None:
             return self.support
         return self._local_support(np.asarray(x))
@@ -85,11 +65,7 @@ def _frame(X, y, name, support, local_support=None):
 
 
 def xor(n=1_000, noise=0.1, rng=None):
-    """y = 1{x1 * x2 < 0} with x1, x2 ~ Unif(-1, 1), observed with noise.
-
-    Both features are individually uninformative and only matter jointly --
-    the standard failure case for marginal screening.
-    """
+    """y = 1{x1 * x2 < 0} with x1, x2 ~ Unif(-1, 1), observed with noise."""
     rng = np.random.default_rng(rng)
     x1 = rng.uniform(-1, 1, n)
     x2 = rng.uniform(-1, 1, n)
@@ -130,13 +106,7 @@ def nonlinear_additive(n=1_000, noise=0.01, rng=None):
 
 
 def conditional_interaction(n=1_000, noise=0.1, rng=None):
-    """y = 2 x1x2 1{x3>0} + x4x5 1{x3<0} + 9 x6x7 1{x8>0} + x9x10 1{x8<0} + eps.
-
-    The design where local and global support genuinely differ: x3 and x8 gate
-    which pair is active, so at any given x only 2 of the 4 interacting pairs
-    contribute. Any method reporting a single global ranking must blur these
-    together; a local method should recover the active pairs for that x.
-    """
+    """y = 2 x1x2 1{x3>0} + x4x5 1{x3<0} + 9 x6x7 1{x8>0} + x9x10 1{x8<0} + eps."""
     rng = np.random.default_rng(rng)
     X = _draw(rng, n)
     y = (
@@ -148,7 +118,6 @@ def conditional_interaction(n=1_000, noise=0.1, rng=None):
     )
 
     def local_support(x):
-        # gates x3 (index 2) and x8 (index 7) are always relevant
         active = [2, 7]
         active += [0, 1] if x[2] > 0 else [3, 4]
         active += [5, 6] if x[7] > 0 else [8, 9]
@@ -160,12 +129,7 @@ def conditional_interaction(n=1_000, noise=0.1, rng=None):
 
 
 def logistic(n=1_000, noise=0.1, rng=None):
-    """y = sigmoid(x1^2 + x3x4 + 4x6 + 7x8^2 + 2x9^3) + eps.
-
-    Note this is a *continuous* response in (0, 1) plus noise, not a Bernoulli
-    draw -- treat it as regression. Use :func:`logistic_bernoulli` if you want
-    actual binary labels.
-    """
+    """y = sigmoid(x1^2 + x3x4 + 4x6 + 7x8^2 + 2x9^3) + eps."""
     rng = np.random.default_rng(rng)
     X = _draw(rng, n)
     eta = X[:, 0] ** 2 + X[:, 2] * X[:, 3] + 4 * X[:, 5] + 7 * X[:, 7] ** 2 + 2 * X[:, 8] ** 3
@@ -183,7 +147,6 @@ def logistic_bernoulli(n=1_000, noise=0.0, rng=None):
     return _frame(X, y, "logistic_bernoulli", [0, 2, 3, 5, 7, 8])
 
 
-#: Lookup used by the experiment runner so configs can name a design as a string.
 REGISTRY = {
     "xor": xor,
     "linear_additive": linear_additive,

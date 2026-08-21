@@ -1,8 +1,4 @@
-"""Scoring a selected feature set against a known ground-truth support.
-
-Used by the simulated-design experiments and by the recovery tests. All
-functions take boolean masks or index arrays of length ``n_features``.
-"""
+"""Scoring a selected feature set against a known ground-truth support."""
 import numpy as np
 
 
@@ -18,19 +14,7 @@ def _as_mask(x, n_features):
 
 
 def recovery_scores(selected, truth, n_features):
-    """Precision / recall / F1 / exact-match of ``selected`` against ``truth``.
-
-    Parameters
-    ----------
-    selected, truth : array-like
-        Either boolean masks of length ``n_features`` or arrays of indices.
-    n_features : int
-
-    Returns
-    -------
-    dict with keys precision, recall, f1, exact, n_selected, n_true,
-    false_positives, false_negatives.
-    """
+    """Precision / recall / F1 / exact-match of ``selected`` against ``truth``."""
     sel = _as_mask(selected, n_features)
     tru = _as_mask(truth, n_features)
 
@@ -55,11 +39,7 @@ def recovery_scores(selected, truth, n_features):
 
 
 def false_discovery_rate(selected, truth, n_features):
-    """Realized FDR: fraction of selected features that are truly null.
-
-    The MinShap threshold targets FDR control, so this is the quantity to
-    average across replicates when checking whether the guarantee holds.
-    """
+    """Realized FDR: fraction of selected features that are truly null."""
     sel = _as_mask(selected, n_features)
     tru = _as_mask(truth, n_features)
     if sel.sum() == 0:

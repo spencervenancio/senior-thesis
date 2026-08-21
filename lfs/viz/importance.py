@@ -1,9 +1,4 @@
-"""Plots for patch importance and selected supports.
-
-Every function returns ``(fig, ax)`` and does **not** call ``plt.show()``, so
-the same call works in a notebook (where inline display happens anyway) and in
-a headless experiment run that needs ``fig.savefig(...)``.
-"""
+"""Plots for patch importance and selected supports."""
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -64,12 +59,7 @@ def plot_local_selected(result, patches, x_S, img_size=28, ax=None, title=None,
 
 
 def plot_threshold_diagnostic(result, ax=None, top_n=None):
-    """phi_min against its threshold t_j, per patch -- the MinShap decision plot.
-
-    Shows *how close* each call was, which a binary selection map hides. Patches
-    sitting just under the line are the ones whose fate would flip with a
-    different alpha or a larger K.
-    """
+    """phi_min against its threshold t_j, per patch -- the MinShap decision plot."""
     phi_min = np.asarray(result["phi_min"])
     t = np.asarray(result["t_j"])
     order = np.argsort(phi_min - t)[::-1]
@@ -96,11 +86,7 @@ def plot_threshold_diagnostic(result, ax=None, top_n=None):
 
 def plot_importance_bars(importances, feature_names=None, true_support=None, ax=None,
                          title="feature importance"):
-    """Bar chart for tabular designs, optionally coloring the true support.
-
-    Pass ``true_support`` from a :class:`lfs.data.simulated.SimulatedDataset` to
-    see at a glance whether the method found the right features.
-    """
+    """Bar chart for tabular designs, optionally coloring the true support."""
     importances = np.asarray(importances)
     n = len(importances)
     names = feature_names if feature_names is not None else [f"x{i+1}" for i in range(n)]

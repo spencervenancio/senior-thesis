@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from lfs.metrics import pointwise
-from lfs.metrics.local import Neighborhood, local_mse, local_neighborhood
+from lfs.metrics.local import Neighborhood
 from lfs.metrics.recovery import false_discovery_rate, power, recovery_scores
 
 # --- pointwise losses -------------------------------------------------------
@@ -91,16 +91,10 @@ def test_neighborhood_radius_is_furthest_distance():
     assert Neighborhood(X, np.array([5.0]), k=3).radius == pytest.approx(1.0)
 
 
-def test_local_neighborhood_requires_query():
-    with pytest.raises(ValueError):
-        local_neighborhood(np.zeros((5, 2)), None)
-
-
-def test_local_mse_restricts_to_indices():
-    y = np.array([0.0, 0.0, 10.0])
-    y_hat = np.array([1.0, 1.0, 0.0])
-    assert local_mse(y_hat, y, np.array([0, 1])) == pytest.approx(1.0)
-    assert local_mse(y_hat, y, np.array([2])) == pytest.approx(100.0)
+def test_neighborhood_requires_query():
+    """Without the guard, sklearn reports a confusing "X contains NaN" instead."""
+    with pytest.raises(ValueError, match="x_S is required"):
+        Neighborhood(np.zeros((5, 2)), None)
 
 
 # --- recovery scoring -------------------------------------------------------

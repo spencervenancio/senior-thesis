@@ -1,10 +1,4 @@
-"""Reproducibility helpers.
-
-Call :func:`set_seed` once at the top of a notebook or experiment. Prefer
-passing an explicit ``rng`` (a :class:`numpy.random.Generator`) into functions
-that need randomness -- global state is a fallback for libraries we do not
-control, such as skorch's weight initialization.
-"""
+"""Reproducibility helpers."""
 import os
 import random
 
@@ -12,22 +6,9 @@ import numpy as np
 
 
 def set_seed(seed: int, deterministic_torch: bool = False) -> np.random.Generator:
-    """Seed python, numpy, and torch; return a fresh Generator for local use.
-
-    Parameters
-    ----------
-    seed : int
-    deterministic_torch : bool
-        Force deterministic cuDNN kernels. Slower, and some ops have no
-        deterministic implementation, but required for bitwise-reproducible
-        neural net training.
-
-    Returns
-    -------
-    np.random.Generator
-    """
+    """Seed python, numpy, and torch; return a fresh Generator for local use."""
     random.seed(seed)
-    np.random.seed(seed)  # legacy global, for anything still using np.random.*
+    np.random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
 
     try:
@@ -46,12 +27,7 @@ def set_seed(seed: int, deterministic_torch: bool = False) -> np.random.Generato
 
 
 def spawn(rng, n):
-    """Split ``rng`` into ``n`` independent child generators.
-
-    Use this to give each parallel permutation its own stream. Sharing one
-    Generator across joblib workers silently duplicates draws, which would make
-    the K permutations in MinShap correlated.
-    """
+    """Split ``rng`` into ``n`` independent child generators."""
     rng = np.random.default_rng(rng)
     return [np.random.default_rng(s) for s in rng.bit_generator._seed_seq.spawn(n)]
 

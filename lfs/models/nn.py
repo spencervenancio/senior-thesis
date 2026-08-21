@@ -1,12 +1,4 @@
-"""Neural network estimators, wrapped in skorch for an sklearn-compatible API.
-
-The selection methods refit on masked inputs whose dimensionality is constant
-but whose *effective* support changes, and in the simulated-design work the
-feature count varies between designs. :class:`AdaptiveNeuralNetClassifier`
-therefore rebuilds its module whenever the input shape or class count changes,
-so a single estimator object can be handed to ``minshap`` without the caller
-tracking architecture.
-"""
+"""Neural network estimators, wrapped in skorch for an sklearn-compatible API."""
 import numpy as np
 import torch.nn as nn
 from skorch import NeuralNetClassifier, NeuralNetRegressor
@@ -28,11 +20,7 @@ class MLP(nn.Module):
 
 
 class DeepMLP(nn.Module):
-    """Three hidden layers, for designs the shallow net underfits.
-
-    The conditional-interaction design in particular needs depth: it is a sum of
-    gated products, which a single ReLU layer approximates poorly.
-    """
+    """Three hidden layers, for designs the shallow net underfits."""
 
     def __init__(self, n_input=1, n_output=1, hidden=256, depth=3, dropout=0.0):
         super().__init__()
@@ -51,13 +39,7 @@ class DeepMLP(nn.Module):
 
 
 class InteractionMLP(nn.Module):
-    """Augments the input with all pairwise products before the MLP.
-
-    For p inputs this feeds p + p(p-1)/2 features, letting the network represent
-    x_i * x_j exactly rather than approximating it. Useful as a well-specified
-    reference on the interaction designs -- if a method cannot recover the
-    support here, the failure is the method's, not the model's.
-    """
+    """Augments the input with all pairwise products before the MLP."""
 
     def __init__(self, n_input=10, n_output=1, hidden=128):
         super().__init__()
@@ -95,12 +77,11 @@ class _AdaptiveMixin:
         if (n_input, n_output) != (getattr(self, "_n_input", None),
                                    getattr(self, "_n_output", None)):
             if hasattr(self, "initialized_"):
-                self.initialized_ = False  # architecture changed, must reinitialize
+                self.initialized_ = False
         self._n_input, self._n_output = n_input, n_output
         return super().fit(X, y, **kwargs)
 
     def initialize_module(self):
-        # assigning module_ (trailing underscore) bypasses skorch's name check
         self.module_ = self.module_cls(
             n_input=getattr(self, "_n_input", 1),
             n_output=getattr(self, "_n_output", 2),
@@ -148,11 +129,7 @@ class AdaptiveNeuralNetRegressor(_AdaptiveMixin, NeuralNetRegressor):
 
 def neural_net(X_train=None, y_train=None, max_epochs=20, lr=1e-3, batch_size=64,
                device="cpu", verbose=0, **kwargs):
-    """Build an adaptive MLP classifier, fitting it when data is supplied.
-
-    Call with no data to get an *unfitted* estimator, which is what the
-    selection methods want -- they deepcopy and refit it themselves.
-    """
+    """Build an adaptive MLP classifier, fitting it when data is supplied."""
     clf = AdaptiveNeuralNetClassifier(
         module=MLP, max_epochs=max_epochs, lr=lr, batch_size=batch_size,
         device=device, verbose=verbose, **kwargs,

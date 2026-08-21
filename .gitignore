@@ -52,7 +52,7 @@ results/
 plots/
 
 # Literature PDFs. Copyrighted, and one is an unpublished manuscript -- this
-# repo is public. lit/README.md and notes/ref.bib carry titles, authors, and
+# repo is public. notes/ref.bib carries titles, authors, and
 # arXiv IDs, which is enough to find any of them.
 lit/*.pdf
 

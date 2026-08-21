@@ -1,14 +1,4 @@
-"""LOCO -- Leave One Covariate Out.
-
-Zero out one patch in both train and test, refit, and measure how much worse
-the model gets. Unlike MinShap this makes no attempt at a conditional
-statement: a patch with a highly correlated partner can look unimportant
-because the partner absorbs its signal. That is precisely the weakness the
-permutation methods are meant to address, so LOCO is kept as the baseline.
-
-Importance is reported on the same scale as MinShap: **increase in loss**, so
-larger means more important, for every loss.
-"""
+"""LOCO -- Leave One Covariate Out."""
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -37,33 +27,7 @@ def _loco_one_patch(patch_idx, model, X_train, X_test, y_train, y_test,
 
 def loco(model, patches, X_train, X_test, y_train, y_test, loss=None,
          early_stopping_patience=5, n_jobs=-1, local=False, x_S=None, k=50):
-    """LOCO importance for each patch.
-
-    Parameters
-    ----------
-    model : sklearn estimator or skorch NeuralNet
-        Refit once per patch; passed by deepcopy, never mutated.
-    patches : list of np.ndarray
-        Index arrays from :func:`lfs.data.patches.get_patches`.
-    X_train, X_test, y_train, y_test : np.ndarray
-    loss : str, callable, or None
-        Per-sample loss; None infers from ``y_train``. See
-        :mod:`lfs.metrics.pointwise`.
-    n_jobs : int
-        joblib parallelism. -1 = all cores, 1 = serial.
-    local : bool
-        Score on a fixed k-NN neighborhood of ``x_S`` within the *test* set.
-    x_S : np.ndarray
-        Query point, required when ``local=True``.
-    k : int
-        Neighborhood size.
-
-    Returns
-    -------
-    np.ndarray, shape (len(patches),)
-        Increase in loss when the patch is removed. Larger = more important.
-        Values near zero (or negative) mean the model recovers without it.
-    """
+    """LOCO importance for each patch."""
     X_train = np.asarray(X_train)
     X_test = np.asarray(X_test)
     y_train = np.asarray(y_train)

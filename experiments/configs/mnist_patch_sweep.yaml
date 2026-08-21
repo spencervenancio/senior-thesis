@@ -1,5 +1,4 @@
-# Task 1 from mnist_exp.ipynb: how does patch size affect what gets selected?
-# Sweeps patch size x method, one result directory per combination.
+# Patch size x method sweep over MNIST.
 name: mnist_patch_sweep
 seed: 0
 

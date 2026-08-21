@@ -1,6 +1,4 @@
-# The design where local and global support genuinely differ: x3 and x8 gate
-# which interaction pair is active, so S*(x) changes with x. A global method
-# cannot be right here; a local one should track the gates.
+# Local MinShap where S*(x) genuinely varies with x.
 name: conditional_local
 seed: 0
 
