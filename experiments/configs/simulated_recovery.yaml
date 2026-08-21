@@ -1,0 +1,28 @@
+# Support recovery across the synthetic designs, scored automatically against
+# the known S*. Sweeps design x seed so FDR/power can be averaged over replicates.
+name: simulated_recovery
+seed: 0
+
+data:
+  source: simulated
+  design: linear_additive
+  n: 2000
+  noise: 0.1
+  test_frac: 0.3
+
+model:
+  kind: neural_net_regressor
+  params:
+    max_epochs: 50
+
+method:
+  kind: minshap
+  params:
+    K: 30
+    alpha: 0.05
+    loss: squared_error
+    n_jobs: 1
+
+sweep:
+  data.design: [linear_additive, nonlinear_additive, logistic]
+  seed: [0, 1, 2, 3, 4]

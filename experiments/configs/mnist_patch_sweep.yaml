@@ -1,0 +1,27 @@
+# Task 1 from mnist_exp.ipynb: how does patch size affect what gets selected?
+# Sweeps patch size x method, one result directory per combination.
+name: mnist_patch_sweep
+seed: 0
+
+data:
+  source: mnist
+  n_train: 5000
+  n_test: 1000
+  patch_size: 4
+
+model:
+  kind: neural_net
+  params:
+    max_epochs: 20
+
+method:
+  kind: minshap
+  params:
+    K: 30
+    alpha: 0.05
+    loss: zero_one
+    n_jobs: 1
+
+sweep:
+  data.patch_size: [2, 4, 7, 14]
+  method.kind: [minshap, max_p]

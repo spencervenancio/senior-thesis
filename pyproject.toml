@@ -3,10 +3,57 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "thesis"
-version = "0.1.0"
+name = "lfs"
+version = "0.2.0"
+description = "Local feature selection with statistical guarantees"
 requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "scikit-learn>=1.3",
+    "matplotlib>=3.7",
+    "joblib>=1.3",
+    "tqdm>=4.65",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Neural-net models and gradient attribution. Kept optional so the core
+# selection code and its tests run without a torch install.
+torch = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "skorch>=0.15",
+    "captum>=0.7",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.4",
+    "nbstripout>=0.7",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*"]
+include = ["lfs*", "experiments*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: end-to-end runs that refit models many times",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"notebooks/*" = ["E402", "F401"]

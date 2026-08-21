@@ -1,0 +1,33 @@
+# The design where local and global support genuinely differ: x3 and x8 gate
+# which interaction pair is active, so S*(x) changes with x. A global method
+# cannot be right here; a local one should track the gates.
+name: conditional_local
+seed: 0
+
+data:
+  source: simulated
+  design: conditional_interaction
+  n: 20000
+  noise: 0.1
+  test_frac: 0.3
+
+model:
+  kind: neural_net_regressor
+  params:
+    max_epochs: 80
+
+method:
+  kind: minshap
+  params:
+    K: 30
+    alpha: 0.05
+    loss: squared_error
+    n_jobs: 1
+
+local:
+  enabled: true
+  query_index: 0
+  k: 200
+
+sweep:
+  local.query_index: [0, 1, 2, 3, 4]

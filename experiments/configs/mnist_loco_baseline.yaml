@@ -1,0 +1,20 @@
+# LOCO baseline for comparison against the permutation methods.
+name: mnist_loco_baseline
+seed: 0
+
+data:
+  source: mnist
+  n_train: 5000
+  n_test: 1000
+  patch_size: 7
+
+model:
+  kind: logistic_regression
+  params:
+    max_iter: 300
+
+method:
+  kind: loco
+  params:
+    loss: zero_one
+    n_jobs: -1

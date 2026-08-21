@@ -1,0 +1,29 @@
+# Local MinShap on a single MNIST digit: which patches does the model need
+# for *this* image? Mirrors notebooks/local_loss.ipynb, but reproducibly.
+name: mnist_local_minshap
+seed: 0
+
+data:
+  source: mnist
+  n_train: 5000
+  n_test: 1000
+  patch_size: 4          # 49 patches over the 28x28 grid
+
+model:
+  kind: neural_net
+  params:
+    max_epochs: 20
+    lr: 0.001
+
+method:
+  kind: minshap
+  params:
+    K: 50                # permutations; the min over K is the conservative part
+    alpha: 0.05
+    loss: zero_one       # classification -> 0/1 loss
+    n_jobs: 1            # skorch + threads; raise once it is running clean
+
+local:
+  enabled: true
+  query_index: 42
+  k: 50                  # neighborhood size; needs >= 2 for a variance estimate
