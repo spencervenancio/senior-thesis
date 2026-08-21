@@ -61,6 +61,9 @@ lit/*.pdf
 **/.DS_Store
 Thumbs.db
 
+# Claude Code per-machine settings (settings.json is shared, .local.json is not)
+.claude/settings.local.json
+
 # Editors
 .vscode/
 .idea/
