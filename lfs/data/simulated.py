@@ -17,8 +17,9 @@ of local feature selection:
 Generators are seeded through an explicit ``rng`` so results are reproducible;
 see :mod:`lfs.seed`.
 """
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Callable, Optional, Sequence
+from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
