@@ -100,10 +100,16 @@ class _AdaptiveMixin:
         return super().fit(X, y, **kwargs)
 
     def initialize_module(self):
+        # get_params_for collects the module__* kwargs, so architecture
+        # parameters (hidden, depth, dropout) survive into the rebuilt module.
+        # Without this they are silently dropped and every estimator gets the
+        # module default, which makes a width or depth sweep a no-op.
+        kwargs = self.get_params_for("module")
         # assigning module_ (trailing underscore) bypasses skorch's name check
         self.module_ = self.module_cls(
             n_input=getattr(self, "_n_input", 1),
             n_output=getattr(self, "_n_output", 2),
+            **kwargs,
         ).to(self.device)
         return self
 
