@@ -1,0 +1,13 @@
+# Install once:  pre-commit install
+# Run manually:  pre-commit run --all-files
+#
+# Hooks are local on purpose: they call the same ruff already pinned in
+# ".[dev]", so there is no pinned revision to drift out of sync with pyproject.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff
+        entry: ruff check --force-exclude
+        language: system
+        types: [python]
