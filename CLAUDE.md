@@ -43,7 +43,7 @@ These are deliberate. Changing them silently corrupts results.
 
 ## Never commit
 
-**This repo is public** (`github.com/spencervenancio/thesis`).
+**This repo is public** (`github.com/spencervenancio/senior-thesis`).
 
 - `lit/*.pdf` — copyrighted, and `Shap_Feature_Selection.pdf` is an
   **unpublished manuscript** (Zheng & Raskutti). Gitignored *and* purged from
