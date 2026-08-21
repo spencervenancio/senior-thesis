@@ -76,9 +76,10 @@ Deliberate. Changing them silently corrupts results.
   carries the metadata.
 - `data/` (63MB of MNIST), `results/` (reproducible from config + seed),
   `.claude/settings.local.json`.
-- **Anchor every `.gitignore` directory rule with a leading slash.** An
-  unanchored `data/` also matches `lfs/data/`, which silently kept two package
-  source files out of the public repo and broke a clean clone.
+- **`.gitignore` rules are unanchored on purpose.** `data/` therefore also
+  matches `lfs/data/`, so a new file there needs `git add -f` and will not show
+  up in `git status`. Anchoring the rules was tried and rejected as noise — do
+  not re-add leading slashes.
 - `git add -A` has swept a misfiled personal document into a commit here once.
   Check `git status` before staging broadly.
 
